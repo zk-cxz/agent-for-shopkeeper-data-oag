@@ -1,0 +1,83 @@
+{
+  "run_id": "OAG-v30",
+  "dataset": "eval-v3.0",
+  "n_total": 97,
+  "n_answerable": 88,
+  "n_unanswerable": 9,
+  "env": {
+    "RETRIEVAL_MODE": "qdrant",
+    "PROMPT_VARIANT": "",
+    "MAX_CORRECT_RETRY": "0"
+  },
+  "retrieval": {
+    "Recall@5": 0.7083,
+    "Recall@10": 0.7083,
+    "Recall@20": 0.7083,
+    "All-Hit": 0.5795,
+    "MetricRecall@3": 0.9659,
+    "ValueHit": 0.9886,
+    "TableHit": 0.8523
+  },
+  "generation": {
+    "ValidRate": 1.0,
+    "EX": 0.8295,
+    "EX_ci95": [
+      0.7376,
+      0.8939
+    ],
+    "EX_count": "73/88",
+    "UnanswerableHandled": "9/9"
+  },
+  "latency": {
+    "P50_ms": 8115.2,
+    "P95_ms": 22613.0,
+    "TTFB_P50_ms": null
+  },
+  "by_category": {
+    "colloquial": {
+      "n": 11,
+      "EX": 0.6364,
+      "Recall10": 0.5455
+    },
+    "group_topn": {
+      "n": 6,
+      "EX": 1.0,
+      "Recall10": 1.0
+    },
+    "hard_composite": {
+      "n": 17,
+      "EX": 0.8235,
+      "Recall10": 0.7941
+    },
+    "multi_table_join": {
+      "n": 6,
+      "EX": 1.0,
+      "Recall10": 0.8333
+    },
+    "out_of_scope": {
+      "n": 7,
+      "EX": null,
+      "Recall10": null
+    },
+    "single_table_single_metric": {
+      "n": 7,
+      "EX": 1.0,
+      "Recall10": 0.5714
+    },
+    "time_range": {
+      "n": 13,
+      "EX": 0.4615,
+      "Recall10": 0.2949
+    },
+    "unanswerable": {
+      "n": 2,
+      "EX": null,
+      "Recall10": null
+    },
+    "value_mapping": {
+      "n": 28,
+      "EX": 0.9643,
+      "Recall10": 0.8571
+    }
+  }
+}

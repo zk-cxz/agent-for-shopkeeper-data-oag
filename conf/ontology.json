@@ -1,0 +1,942 @@
+{
+  "version": "1.0",
+  "domain": "电商订单分析",
+  "data_range": {
+    "min_date": 20250101,
+    "max_date": 20261031,
+    "description": "覆盖两段：2025-01-01 ~ 2025-03-31（115 单）与 2026-01-01 ~ 2026-10-31（80 单）。 注意 2025-04-01 ~ 2025-12-31 这 9 个月没有任何订单（不是数据缺失，是业务上没有单）； 问这段区间应返回 0 行，不要外推到相邻区间。\n"
+  },
+  "tables": {
+    "dim_customer": {
+      "kind": "dimension",
+      "grain": "一行一个客户",
+      "description": "客户维度表，描述下单客户的基本属性。",
+      "aliases": []
+    },
+    "dim_date": {
+      "kind": "dimension",
+      "grain": "一行一天",
+      "description": "时间维度表，用于多时间粒度分析。",
+      "aliases": []
+    },
+    "dim_product": {
+      "kind": "dimension",
+      "grain": "一行一个商品",
+      "description": "商品维度表，描述商品的基本属性信息。",
+      "aliases": []
+    },
+    "dim_region": {
+      "kind": "dimension",
+      "grain": "一行一个省份",
+      "description": "地区维度表，用于描述订单发生的地理区域信息。",
+      "aliases": []
+    },
+    "fact_order": {
+      "kind": "fact",
+      "grain": "一行一个订单",
+      "description": "订单事实表，记录订单数量和金额等核心指标。",
+      "aliases": []
+    }
+  },
+  "columns": {
+    "dim_customer.customer_id": {
+      "table": "dim_customer",
+      "name": "customer_id",
+      "role": "primary_key",
+      "dtype": "varchar(20)",
+      "description": "客户唯一标识。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "客户ID",
+        "用户ID"
+      ],
+      "values": []
+    },
+    "dim_customer.customer_name": {
+      "table": "dim_customer",
+      "name": "customer_name",
+      "role": "dimension",
+      "dtype": "varchar(50)",
+      "description": "客户名称。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "客户名称",
+        "用户名称",
+        "客户名",
+        "用户名"
+      ],
+      "values": []
+    },
+    "dim_customer.gender": {
+      "table": "dim_customer",
+      "name": "gender",
+      "role": "dimension",
+      "dtype": "varchar(10)",
+      "description": "客户性别。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "性别"
+      ],
+      "values": [
+        "男",
+        "女"
+      ]
+    },
+    "dim_customer.member_level": {
+      "table": "dim_customer",
+      "name": "member_level",
+      "role": "dimension",
+      "dtype": "varchar(20)",
+      "description": "客户会员等级。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "会员等级",
+        "用户等级",
+        "会员级别",
+        "等级",
+        "会员卡等级"
+      ],
+      "values": [
+        "黄金",
+        "白银",
+        "青铜",
+        "铂金"
+      ]
+    },
+    "dim_date.date_id": {
+      "table": "dim_date",
+      "name": "date_id",
+      "role": "primary_key",
+      "dtype": "int(11)",
+      "description": "日期唯一标识，格式 yyyyMMdd。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "日期ID",
+        "日期",
+        "下单日期"
+      ],
+      "values": []
+    },
+    "dim_date.day": {
+      "table": "dim_date",
+      "name": "day",
+      "role": "dimension",
+      "dtype": "int(11)",
+      "description": "日。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "日",
+        "天"
+      ],
+      "values": []
+    },
+    "dim_date.month": {
+      "table": "dim_date",
+      "name": "month",
+      "role": "dimension",
+      "dtype": "int(11)",
+      "description": "月份。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "月",
+        "月份"
+      ],
+      "values": []
+    },
+    "dim_date.quarter": {
+      "table": "dim_date",
+      "name": "quarter",
+      "role": "dimension",
+      "dtype": "varchar(2)",
+      "description": "季度。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "季度"
+      ],
+      "values": []
+    },
+    "dim_date.year": {
+      "table": "dim_date",
+      "name": "year",
+      "role": "dimension",
+      "dtype": "int(11)",
+      "description": "年份。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "年",
+        "年份"
+      ],
+      "values": []
+    },
+    "dim_product.brand": {
+      "table": "dim_product",
+      "name": "brand",
+      "role": "dimension",
+      "dtype": "varchar(50)",
+      "description": "商品品牌名称。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "品牌",
+        "品牌名称",
+        "牌子"
+      ],
+      "values": [
+        "苹果",
+        "三星",
+        "华为",
+        "戴森",
+        "美的",
+        "耐克",
+        "阿迪达斯",
+        "优衣库",
+        "李维斯",
+        "雀巢",
+        "蒙牛",
+        "乐事",
+        "奥利奥",
+        "亚马逊",
+        "Instant Pot"
+      ]
+    },
+    "dim_product.category": {
+      "table": "dim_product",
+      "name": "category",
+      "role": "dimension",
+      "dtype": "varchar(50)",
+      "description": "商品所属品类。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "商品类别",
+        "品类",
+        "分类",
+        "类目"
+      ],
+      "values": [
+        "手机数码",
+        "家用电器",
+        "鞋靴",
+        "服饰",
+        "食品饮料",
+        "休闲零食"
+      ]
+    },
+    "dim_product.product_id": {
+      "table": "dim_product",
+      "name": "product_id",
+      "role": "primary_key",
+      "dtype": "varchar(20)",
+      "description": "商品唯一标识。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "商品ID",
+        "产品ID"
+      ],
+      "values": []
+    },
+    "dim_product.product_name": {
+      "table": "dim_product",
+      "name": "product_name",
+      "role": "dimension",
+      "dtype": "varchar(200)",
+      "description": "商品名称。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "商品名称",
+        "产品名称",
+        "商品",
+        "产品",
+        "货品"
+      ],
+      "values": [
+        "iPhone 15 Pro",
+        "Galaxy S24 Ultra",
+        "Mate 60 Pro",
+        "戴森 V15 吸尘器",
+        "美的空调 KFR-35GW",
+        "耐克 Air Max 270 运动鞋",
+        "阿迪达斯 Ultraboost 跑鞋",
+        "优衣库 Heattech 保暖夹克",
+        "李维斯 501 牛仔裤",
+        "雀巢金牌速溶咖啡",
+        "蒙牛纯牛奶 250ml*12",
+        "乐事原味薯片 150g",
+        "奥利奥巧克力夹心饼干",
+        "Kindle Paperwhite 电子书",
+        "Instant Pot 多功能电压力锅"
+      ]
+    },
+    "dim_region.country": {
+      "table": "dim_region",
+      "name": "country",
+      "role": "dimension",
+      "dtype": "varchar(50)",
+      "description": "地区所属国家名称。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "国家",
+        "国家名称"
+      ],
+      "values": [
+        "中国"
+      ]
+    },
+    "dim_region.province": {
+      "table": "dim_region",
+      "name": "province",
+      "role": "dimension",
+      "dtype": "varchar(50)",
+      "description": "订单所属的省份名称。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "省份",
+        "省",
+        "所在省份",
+        "所在省"
+      ],
+      "values": [
+        "广东省",
+        "浙江省",
+        "四川省",
+        "北京市",
+        "上海市",
+        "湖北省"
+      ]
+    },
+    "dim_region.region_id": {
+      "table": "dim_region",
+      "name": "region_id",
+      "role": "primary_key",
+      "dtype": "varchar(20)",
+      "description": "地区唯一标识。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "地区ID",
+        "区域ID"
+      ],
+      "values": []
+    },
+    "dim_region.region_name": {
+      "table": "dim_region",
+      "name": "region_name",
+      "role": "dimension",
+      "dtype": "varchar(50)",
+      "description": "订单所属的大区名称，如华东、华南等。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "地区",
+        "区域",
+        "大区"
+      ],
+      "values": [
+        "华南",
+        "华东",
+        "西南",
+        "华北",
+        "华中"
+      ]
+    },
+    "fact_order.customer_id": {
+      "table": "fact_order",
+      "name": "customer_id",
+      "role": "foreign_key",
+      "dtype": "varchar(20)",
+      "description": "关联客户维度的外键。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "客户ID",
+        "用户ID"
+      ],
+      "values": []
+    },
+    "fact_order.date_id": {
+      "table": "fact_order",
+      "name": "date_id",
+      "role": "foreign_key",
+      "dtype": "int(11)",
+      "description": "关联时间维度的外键。",
+      "is_measure": false,
+      "is_temporal": true,
+      "aliases": [
+        "日期",
+        "下单日期"
+      ],
+      "values": []
+    },
+    "fact_order.order_amount": {
+      "table": "fact_order",
+      "name": "order_amount",
+      "role": "measure",
+      "dtype": "float",
+      "description": "订单金额。",
+      "is_measure": true,
+      "is_temporal": false,
+      "aliases": [
+        "销售额",
+        "订单金额",
+        "收入",
+        "营业额",
+        "成交额",
+        "流水",
+        "交易额",
+        "销售收入",
+        "金额"
+      ],
+      "values": []
+    },
+    "fact_order.order_id": {
+      "table": "fact_order",
+      "name": "order_id",
+      "role": "primary_key",
+      "dtype": "varchar(30)",
+      "description": "订单唯一标识。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "订单ID",
+        "订单号",
+        "订单编号"
+      ],
+      "values": []
+    },
+    "fact_order.order_quantity": {
+      "table": "fact_order",
+      "name": "order_quantity",
+      "role": "measure",
+      "dtype": "int(11)",
+      "description": "订单中商品的购买数量。",
+      "is_measure": true,
+      "is_temporal": false,
+      "aliases": [
+        "销量",
+        "购买数量",
+        "件数",
+        "出货量",
+        "卖了多少件",
+        "数量"
+      ],
+      "values": []
+    },
+    "fact_order.product_id": {
+      "table": "fact_order",
+      "name": "product_id",
+      "role": "foreign_key",
+      "dtype": "varchar(20)",
+      "description": "关联商品维度的外键。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "商品ID",
+        "产品ID"
+      ],
+      "values": []
+    },
+    "fact_order.region_id": {
+      "table": "fact_order",
+      "name": "region_id",
+      "role": "foreign_key",
+      "dtype": "varchar(20)",
+      "description": "关联地区维度的外键。",
+      "is_measure": false,
+      "is_temporal": false,
+      "aliases": [
+        "地区ID",
+        "区域ID"
+      ],
+      "values": []
+    }
+  },
+  "metrics": {
+    "AOV": {
+      "display": "平均订单金额",
+      "formula": "AVG(fact_order.order_amount)",
+      "description": "全称Average Order Value，表示所有订单的成交金额平均值。",
+      "depends_on": [
+        "fact_order.order_quantity"
+      ],
+      "aliases": [
+        "平均单价",
+        "平均订单金额",
+        "客单价",
+        "平均客单价",
+        "单均价",
+        "每单价",
+        "平均每单金额",
+        "平均一单",
+        "每单金额"
+      ]
+    },
+    "GMV": {
+      "display": "销售额",
+      "formula": "SUM(fact_order.order_amount)",
+      "description": "全称Gross Merchandise Value，表示所有订单的成交金额总和。",
+      "depends_on": [
+        "fact_order.order_amount"
+      ],
+      "aliases": [
+        "成交总额",
+        "订单总额",
+        "GMV",
+        "gmv",
+        "成交额",
+        "营业额",
+        "总销售额",
+        "销售总额",
+        "总金额",
+        "流水",
+        "交易额",
+        "交易总额",
+        "销售收入",
+        "卖了多少钱"
+      ]
+    }
+  },
+  "foreign_keys": [
+    {
+      "from": "fact_order.region_id",
+      "to": "dim_region.region_id"
+    },
+    {
+      "from": "fact_order.customer_id",
+      "to": "dim_customer.customer_id"
+    },
+    {
+      "from": "fact_order.product_id",
+      "to": "dim_product.product_id"
+    },
+    {
+      "from": "fact_order.date_id",
+      "to": "dim_date.date_id"
+    }
+  ],
+  "temporal": {
+    "column": "fact_order.date_id",
+    "dimension": "dim_date",
+    "join_key": "dim_date.date_id",
+    "grain_columns": {
+      "年": "dim_date.year",
+      "季度": "dim_date.quarter",
+      "月": "dim_date.month",
+      "日": "dim_date.day"
+    },
+    "format_note": "quarter 字段存的是 'Q1'~'Q4' 字符串，不是数字"
+  },
+  "rules": {
+    "only_select": true,
+    "require_alias": true,
+    "aggregate_measures": true,
+    "group_by_complete": true,
+    "group_by_no_hidden_column": true,
+    "value_filter_required": true,
+    "temporal_via_dimension": true,
+    "refuse_relative_time": true
+  },
+  "lexicon": {
+    "entity_aliases": {
+      "订单": "fact_order",
+      "客户": "dim_customer",
+      "用户": "dim_customer",
+      "会员": "dim_customer",
+      "商品": "dim_product",
+      "产品": "dim_product",
+      "地区": "dim_region",
+      "区域": "dim_region",
+      "日期": "dim_date",
+      "时间": "dim_date"
+    },
+    "metric_aliases": {
+      "GMV": [
+        "GMV",
+        "gmv",
+        "成交额",
+        "营业额",
+        "总销售额",
+        "销售总额",
+        "总金额",
+        "流水",
+        "交易额",
+        "交易总额",
+        "销售收入",
+        "卖了多少钱"
+      ],
+      "AOV": [
+        "客单价",
+        "平均客单价",
+        "单均价",
+        "每单价",
+        "平均每单金额",
+        "平均一单",
+        "每单金额"
+      ]
+    },
+    "column_aliases": {
+      "fact_order.order_amount": [
+        "营业额",
+        "成交额",
+        "流水",
+        "交易额",
+        "销售收入",
+        "订单金额",
+        "销售额",
+        "收入",
+        "金额"
+      ],
+      "fact_order.order_quantity": [
+        "销量",
+        "出货量",
+        "卖了多少件",
+        "购买数量",
+        "件数",
+        "数量"
+      ],
+      "fact_order.order_id": [
+        "订单号",
+        "订单编号"
+      ],
+      "dim_customer.member_level": [
+        "会员级别",
+        "会员等级",
+        "等级",
+        "会员卡等级"
+      ],
+      "dim_customer.customer_name": [
+        "客户名称",
+        "客户名",
+        "用户名"
+      ],
+      "dim_customer.gender": [
+        "性别"
+      ],
+      "dim_region.region_name": [
+        "大区",
+        "区域",
+        "地区"
+      ],
+      "dim_region.province": [
+        "省份",
+        "省",
+        "所在省"
+      ],
+      "dim_region.country": [
+        "国家"
+      ],
+      "dim_product.category": [
+        "品类",
+        "类目",
+        "分类",
+        "商品类别"
+      ],
+      "dim_product.brand": [
+        "品牌",
+        "牌子"
+      ],
+      "dim_product.product_name": [
+        "商品",
+        "产品",
+        "货品",
+        "商品名称"
+      ],
+      "dim_date.year": [
+        "年",
+        "年份"
+      ],
+      "dim_date.quarter": [
+        "季度"
+      ],
+      "dim_date.month": [
+        "月",
+        "月份"
+      ],
+      "dim_date.day": [
+        "日",
+        "天"
+      ],
+      "dim_date.date_id": [
+        "日期",
+        "下单日期"
+      ]
+    },
+    "value_domain_exclude": [
+      "dim_date.day",
+      "dim_date.month",
+      "dim_date.year",
+      "dim_date.quarter",
+      "dim_customer.customer_name"
+    ],
+    "value_suffixes": [
+      "地区",
+      "区域",
+      "大区",
+      "省份",
+      "省",
+      "市",
+      "会员",
+      "卡",
+      "手机",
+      "产品",
+      "品牌",
+      "品类",
+      "商品",
+      "的"
+    ],
+    "time_expressions": {
+      "一季度": "Q1",
+      "第一季度": "Q1",
+      "Q1": "Q1",
+      "q1": "Q1",
+      "二季度": "Q2",
+      "第二季度": "Q2",
+      "三季度": "Q3",
+      "第三季度": "Q3",
+      "四季度": "Q4",
+      "第四季度": "Q4",
+      "Q2": "Q2",
+      "q2": "Q2",
+      "Q3": "Q3",
+      "q3": "Q3",
+      "Q4": "Q4",
+      "q4": "Q4",
+      "头三个月": "Q1",
+      "开年三个月": "Q1",
+      "前三个月": "Q1"
+    },
+    "relative_times": [
+      "今天",
+      "昨天",
+      "前天",
+      "本周",
+      "上周",
+      "本月",
+      "上个月",
+      "上月",
+      "今年",
+      "去年",
+      "明年",
+      "最近一周",
+      "最近一个月",
+      "最近三个月"
+    ],
+    "generic_tokens": [
+      "商品",
+      "产品",
+      "货品",
+      "订单",
+      "客户",
+      "用户",
+      "会员",
+      "品类",
+      "类目",
+      "分类",
+      "品牌",
+      "地区",
+      "区域",
+      "大区",
+      "省份",
+      "省",
+      "城市",
+      "市",
+      "国家",
+      "日期",
+      "时间",
+      "月份",
+      "季度",
+      "年份",
+      "名字",
+      "名称",
+      "编号",
+      "单",
+      "笔",
+      "条",
+      "个",
+      "位",
+      "家",
+      "件",
+      "次",
+      "记录",
+      "数据",
+      "明细",
+      "详情",
+      "列表",
+      "排行",
+      "排名",
+      "榜单",
+      "平台",
+      "整体",
+      "总体",
+      "我们",
+      "本公司",
+      "现在",
+      "目前",
+      "当前",
+      "还有",
+      "剩下",
+      "剩余",
+      "剩",
+      "统计",
+      "查询",
+      "查",
+      "看",
+      "算",
+      "计算",
+      "给出",
+      "列出",
+      "显示",
+      "汇总",
+      "合计",
+      "总计",
+      "一共",
+      "总共",
+      "分别是",
+      "分别",
+      "各",
+      "每个",
+      "每",
+      "所有",
+      "全部",
+      "不同",
+      "具体",
+      "相关",
+      "对应",
+      "贡献",
+      "卖出",
+      "卖",
+      "购买",
+      "买",
+      "花",
+      "花了",
+      "花费",
+      "下单",
+      "下过",
+      "产生",
+      "产生过",
+      "收到",
+      "得到",
+      "高于",
+      "低于",
+      "大于",
+      "小于",
+      "超过",
+      "以上",
+      "以下",
+      "以内",
+      "之间",
+      "最高",
+      "最低",
+      "最大",
+      "最小",
+      "最多",
+      "最少",
+      "数最多",
+      "数最少",
+      "更好",
+      "更差",
+      "前",
+      "后",
+      "第",
+      "除去",
+      "除了",
+      "不含",
+      "包括",
+      "排序",
+      "升序",
+      "降序",
+      "倒序",
+      "平均",
+      "平均值",
+      "均值",
+      "总和",
+      "总额",
+      "总金额",
+      "总量",
+      "总数",
+      "数",
+      "数目",
+      "百分比",
+      "百分之",
+      "占",
+      "比",
+      "比例",
+      "占比",
+      "增长",
+      "下降",
+      "变化",
+      "情况",
+      "分布",
+      "数据范围",
+      "覆盖",
+      "多少",
+      "几个",
+      "哪个",
+      "哪些",
+      "哪里",
+      "什么",
+      "怎么样",
+      "怎样的",
+      "是否",
+      "有没有",
+      "是",
+      "有",
+      "在",
+      "和",
+      "与",
+      "及",
+      "或",
+      "的",
+      "了",
+      "吗",
+      "呢",
+      "吧",
+      "啊",
+      "我",
+      "请",
+      "帮",
+      "帮忙",
+      "一下",
+      "告诉",
+      "想要",
+      "GMV",
+      "gmv",
+      "TopN",
+      "top",
+      "TOP",
+      "N",
+      "id",
+      "ID"
+    ],
+    "drop_pos": [
+      "m",
+      "mq",
+      "r",
+      "c",
+      "p",
+      "u",
+      "uz",
+      "ul",
+      "y",
+      "e",
+      "o",
+      "x",
+      "w",
+      "f",
+      "d",
+      "t"
+    ]
+  }
+}

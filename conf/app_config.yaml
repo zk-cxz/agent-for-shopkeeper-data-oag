@@ -1,0 +1,22 @@
+llm:
+  model_name: deepseek-v4.1-flash-1017
+  base_url: https://maas.qianwenaiapi.com/compatible-mode/v1
+  api_key: EMPTY
+  temperature: 0
+
+dw:
+  user: didilili
+  password: dili123
+  host: 127.0.0.1
+  port: 3306
+  database: dw
+  charset: utf8mb4
+
+ontology:
+  json_path: conf/ontology.json
+  # dict: 纯确定性词典与值域（不依赖任何模型/向量库）
+  resolve_mode: dict
+
+server:
+  host: 127.0.0.1
+  port: 8010

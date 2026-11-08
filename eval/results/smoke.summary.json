@@ -1,0 +1,43 @@
+{
+  "run_id": "smoke",
+  "dataset": "eval-v3.0",
+  "n_total": 3,
+  "n_answerable": 3,
+  "n_unanswerable": 0,
+  "env": {
+    "RETRIEVAL_MODE": "qdrant",
+    "PROMPT_VARIANT": "",
+    "MAX_CORRECT_RETRY": "0"
+  },
+  "retrieval": {
+    "Recall@5": 0.3333,
+    "Recall@10": 0.3333,
+    "Recall@20": 0.3333,
+    "All-Hit": 0.3333,
+    "MetricRecall@3": 1.0,
+    "ValueHit": 1.0,
+    "TableHit": 1.0
+  },
+  "generation": {
+    "ValidRate": 1.0,
+    "EX": 1.0,
+    "EX_ci95": [
+      0.4385,
+      1.0
+    ],
+    "EX_count": "3/3",
+    "UnanswerableHandled": "0/0"
+  },
+  "latency": {
+    "P50_ms": 5682.8,
+    "P95_ms": 6811.5,
+    "TTFB_P50_ms": null
+  },
+  "by_category": {
+    "single_table_single_metric": {
+      "n": 3,
+      "EX": 1.0,
+      "Recall10": 0.3333
+    }
+  }
+}

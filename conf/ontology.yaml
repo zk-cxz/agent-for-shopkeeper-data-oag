@@ -1,0 +1,212 @@
+# =============================================================================
+# 本体（Ontology）语义层 —— OAG 重构的知识底座
+#
+# 与 RAG 版最大的区别：
+#   RAG 版把「表/字段/别名」当作**检索语料**，靠向量相似度召回给大模型，让模型自己判断；
+#   本文件把它们声明为**对象、属性、关系、规则、域边界**，运行时用确定性代码解析，
+#   大模型只负责「把已确定的结构翻成 SQL」，不再负责「猜这段文字对应哪个字段」。
+#
+# 编译方式：python scripts/build_ontology.py
+#   输入 = 本文件 + meta 库（数据字典）+ dw 库（真实取值）
+#   输出 = conf/ontology.json + conf/ontology_vectors.npz
+# =============================================================================
+
+version: "1.0"
+domain: 电商订单分析
+
+# ---------- 数据范围：写进本体，而不是每次问模型"今年是哪年" ----------
+data_range:
+  min_date: 20250101
+  max_date: 20261031
+  description: >
+    覆盖两段：2025-01-01 ~ 2025-03-31（115 单）与 2026-01-01 ~ 2026-10-31（80 单）。
+    注意 2025-04-01 ~ 2025-12-31 这 9 个月没有任何订单（不是数据缺失，是业务上没有单）；
+    问这段区间应返回 0 行，不要外推到相邻区间。
+
+# ---------- 对象类型：表 ----------
+tables:
+  fact_order:
+    kind: fact
+    grain: 一行一个订单
+    description: 订单事实表，记录每笔订单的客户、商品、地区、日期、金额与数量
+  dim_region:
+    kind: dimension
+    grain: 一行一个省份
+    description: 地区维度，省份归口到大区
+  dim_customer:
+    kind: dimension
+    grain: 一行一个客户
+    description: 客户维度，含性别与会员等级
+  dim_product:
+    kind: dimension
+    grain: 一行一个商品
+    description: 商品维度，含品类与品牌
+  dim_date:
+    kind: dimension
+    grain: 一行一天
+    description: 日期维度，含年、季度、月、日
+
+# ---------- 度量：只有这些列可以做 SUM/AVG，其余都是维度 ----------
+measures:
+  - fact_order.order_amount
+  - fact_order.order_quantity
+
+# ---------- 时间语义：问"按月/季度"必须走维度表，不要从 date_id 硬算 ----------
+temporal:
+  column: fact_order.date_id
+  dimension: dim_date
+  join_key: dim_date.date_id
+  grain_columns:
+    年: dim_date.year
+    季度: dim_date.quarter
+    月: dim_date.month
+    日: dim_date.day
+  format_note: quarter 字段存的是 'Q1'~'Q4' 字符串，不是数字
+
+# ---------- 关系（Link Type）：JOIN 路径由本体给定，模型不再推断 ----------
+foreign_keys:
+  - from: fact_order.region_id
+    to: dim_region.region_id
+  - from: fact_order.customer_id
+    to: dim_customer.customer_id
+  - from: fact_order.product_id
+    to: dim_product.product_id
+  - from: fact_order.date_id
+    to: dim_date.date_id
+
+# ---------- 指标：口径唯一化，避免"客单价"被算成 SUM/客户数 ----------
+metrics:
+  GMV:
+    display: 销售额
+    formula: SUM(fact_order.order_amount)
+    depends_on: [fact_order.order_amount]
+    description: 所有订单成交金额总和
+  AOV:
+    display: 平均订单金额
+    formula: AVG(fact_order.order_amount)
+    depends_on: [fact_order.order_amount]
+    description: 平均每笔订单的成交金额，等于总销售额除以订单数
+
+# ---------- 规则：生成 SQL 后由代码强制校验，不依赖模型自觉 ----------
+rules:
+  only_select: true
+  require_alias: true
+  aggregate_measures: true
+  group_by_complete: true
+  # GROUP BY 里不允许出现 SELECT 之外的列（尤其是维度表主键），否则同一业务维度会被拆成多行
+  group_by_no_hidden_column: true
+  # 问题里解析出的取值必须出现在 WHERE 中
+  value_filter_required: true
+  # 只要问题涉及时间粒度，必须 join dim_date
+  temporal_via_dimension: true
+  # 命中相对时间（今天/上个月）时直接说明数据范围，不生成 SQL
+  refuse_relative_time: true
+
+# =============================================================================
+# 词表（Lexicon）—— 本体治理工作
+#
+# meta 库里已登记了一部分别名（销售额/收入/平均单价/成交总额…），但覆盖率有限：
+#   order_amount 没有「营业额/成交额/流水」，AOV 没有「客单价」。
+# 下面这部分是**业务词表补全**，属于 OAG 落地必须做的人工治理，
+# 不是架构自动带来的能力 —— 这一点必须如实说明，否则就成了"换个名字就变强"。
+# =============================================================================
+lexicon:
+  # 实体词 -> 对象类型（表）。这是"有多少个订单"这类计数问法能被解析的关键
+  entity_aliases:
+    订单: fact_order
+    客户: dim_customer
+    用户: dim_customer
+    会员: dim_customer
+    商品: dim_product
+    产品: dim_product
+    地区: dim_region
+    区域: dim_region
+    日期: dim_date
+    时间: dim_date
+
+  metric_aliases:
+    GMV: [GMV, gmv, 成交额, 营业额, 总销售额, 销售总额, 总金额, 流水, 交易额, 交易总额, 销售收入, 卖了多少钱]
+    AOV: [客单价, 平均客单价, 单均价, 每单价, 平均每单金额, 平均一单, 每单金额]
+
+  column_aliases:
+    fact_order.order_amount: [营业额, 成交额, 流水, 交易额, 销售收入, 订单金额, 销售额, 收入, 金额]
+    fact_order.order_quantity: [销量, 出货量, 卖了多少件, 购买数量, 件数, 数量]
+    fact_order.order_id: [订单号, 订单编号]
+    dim_customer.member_level: [会员级别, 会员等级, 等级, 会员卡等级]
+    dim_customer.customer_name: [客户名称, 客户名, 用户名]
+    dim_customer.gender: [性别]
+    dim_region.region_name: [大区, 区域, 地区]
+    dim_region.province: [省份, 省, 所在省]
+    dim_region.country: [国家]
+    dim_product.category: [品类, 类目, 分类, 商品类别]
+    dim_product.brand: [品牌, 牌子]
+    dim_product.product_name: [商品, 产品, 货品, 商品名称]
+    dim_date.year: [年, 年份]
+    dim_date.quarter: [季度]
+    dim_date.month: [月, 月份]
+    dim_date.day: [日, 天]
+    dim_date.date_id: [日期, 下单日期]
+
+  # 这些列不当枚举值域：日期零件（1~31 的数字会误匹配"超过10万"）、客户姓名（基数大且无业务语义）
+  value_domain_exclude:
+    - dim_date.day
+    - dim_date.month
+    - dim_date.year
+    - dim_date.quarter
+    - dim_customer.customer_name
+
+  # 匹配取值时允许剥掉的通用后缀："华北地区"→华北、"黄金会员"→黄金、"苹果手机"→苹果
+  value_suffixes: [地区, 区域, 大区, 省份, 省, 市, 会员, 卡, 手机, 产品, 品牌, 品类, 商品, 的]
+
+  # 固定时间表达 → 语义标签
+  time_expressions:
+    一季度: Q1
+    第一季度: Q1
+    Q1: Q1
+    q1: Q1
+    二季度: Q2
+    第二季度: Q2
+    三季度: Q3
+    第三季度: Q3
+    四季度: Q4
+    第四季度: Q4
+    Q2: Q2
+    q2: Q2
+    Q3: Q3
+    q3: Q3
+    Q4: Q4
+    q4: Q4
+    头三个月: Q1
+    开年三个月: Q1
+    前三个月: Q1
+
+  # 相对时间：数仓没有对应数据，命中后应说明数据范围，而不是编一个数
+  relative_times: [今天, 昨天, 前天, 本周, 上周, 本月, 上个月, 上月, 今年, 去年, 明年, 最近一周, 最近一个月, 最近三个月]
+
+  # 允许出现、但不需要映射到对象或度量的通用词（业务泛称 / 疑问词 / 统计动作 / 助词）
+  # 这份表是「域边界」的一部分：不在表里、又匹配不到对象的词 = 超纲概念
+  generic_tokens: [
+    # 业务泛称（不是具体字段，但属于本域常用词）
+    商品, 产品, 货品, 订单, 客户, 用户, 会员, 品类, 类目, 分类, 品牌, 地区, 区域,
+    大区, 省份, 省, 城市, 市, 国家, 日期, 时间, 月份, 季度, 年份, 名字, 名称, 编号,
+    单, 笔, 条, 个, 位, 家, 件, 次, 记录, 数据, 明细, 详情, 列表, 排行, 排名, 榜单,
+    平台, 整体, 总体, 我们, 本公司, 现在, 目前, 当前, 还有, 剩下, 剩余, 剩,
+    # 统计动作与疑问动词
+    统计, 查询, 查, 看, 算, 计算, 给出, 列出, 显示, 汇总, 合计, 总计, 一共, 总共,
+    分别是, 分别, 各, 每个, 每, 所有, 全部, 不同, 具体, 相关, 对应, 贡献,
+    卖出, 卖, 购买, 买, 花, 花了, 花费, 下单, 下过, 产生, 产生过, 收到, 得到,
+    # 比较与排序
+    高于, 低于, 大于, 小于, 超过, 以上, 以下, 以内, 之间, 最高, 最低, 最大, 最小,
+    最多, 最少, 数最多, 数最少, 更好, 更差, 前, 后, 第, 除去, 除了, 不含, 包括, 排序, 升序, 降序, 倒序,
+    # 聚合与占比
+    平均, 平均值, 均值, 总和, 总额, 总金额, 总量, 总数, 数, 数目, 百分比, 百分之,
+    占, 比, 比例, 占比, 增长, 下降, 变化, 情况, 分布, 数据范围, 覆盖,
+    # 疑问与虚词
+    多少, 几个, 哪个, 哪些, 哪里, 什么, 怎么样, 怎样的, 是否, 有没有, 是, 有, 在,
+    和, 与, 及, 或, 的, 了, 吗, 呢, 吧, 啊, 我, 请, 帮, 帮忙, 一下, 告诉, 想要,
+    # 英文与单位
+    GMV, gmv, TopN, top, TOP, N, id, ID,
+  ]
+
+  # 停用词：分词时直接丢弃的词性（数词、量词、代词、连词、助词等）
+  drop_pos: [m, mq, r, c, p, u, uz, ul, y, e, o, x, w, f, d, t]
